@@ -202,7 +202,7 @@ def record():
                     "penalty_time":    round(gfx.penaltyTime, 3),
                     "car_x":           round(gfx.carCoordinates[0], 2),
                     "car_y":           round(gfx.carCoordinates[1], 2),
-                    "car_z":           round(gfx.carCoordinates[2], 2),
+                    "car_z":           -round(gfx.carCoordinates[2], 2),
                 }
 
                 writer.writerow(row)
