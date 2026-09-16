@@ -1,0 +1,3 @@
+[submodule "third_party/assetto_corsa_gym"]
+	path = third_party/assetto_corsa_gym
+	url = https://github.com/terracodum/assetto_corsa_gym.git
