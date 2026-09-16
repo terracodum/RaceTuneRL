@@ -1,0 +1,71 @@
+# Conda-окружение для third_party/assetto_corsa_gym (submodule).
+# Версии python/pytorch/cudatoolkit — как в апстрим README форка
+# (third_party/assetto_corsa_gym/README.md:116,122): python 3.9.13,
+# pytorch 1.12.1, cuda 11.6. Остальные версии — из
+# third_party/assetto_corsa_gym/requirements.txt (не менять, submodule
+# не редактируем).
+#
+# Отличия от буквальной команды в апстрим README (conda install pytorch
+# -c pytorch -c conda-forge) задокументированы и обязательны, иначе
+# установка не воспроизводится:
+#   - pytorch ставится pip-wheelом с офиц. индекса pytorch (cu116), а не
+#     conda-пакетом: conda-forge тянет mkl 2025.x, несовместимый по ABI
+#     со сборкой pytorch 1.12.1 (падает при импорте с
+#     "OSError: ...shm.dll"). Подробности: docs/reports/assetto-corsa-gym-submodule.md
+#   - pip закреплён на 24.0: pip>=24.1 отказывается ставить gym==0.21.0
+#     ("invalid metadata... Please use pip<24.1").
+#   - tensorboard закреплён на 2.10.1, а не последней версии (в
+#     requirements.txt submodule он не запинен): актуальный tensorboard
+#     тянет protobuf>=6.31, несовместимый со сгенерированными .proto
+#     файлами wandb==0.12.16 ("Descriptors cannot be created directly").
+#
+# Создание:  conda env create -f environment.yml
+# Обновление: conda env update -f environment.yml --prune
+# Проверка:  python scripts/check_env.py  (после conda activate p309)
+name: p309
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9.13
+  - pip=24.0
+  - setuptools=65.5.0
+  - wheel=0.38.4
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu116
+      - torch==1.12.1+cu116
+      - numpy==1.23.3
+      - gym==0.21.0
+      - gym[classic_control]==0.21.0
+      - cloudpickle==2.2.0
+      - cycler==0.11.0
+      - fonttools==4.37.1
+      - kiwisolver==1.4.4
+      - matplotlib==3.5.3
+      - packaging==21.3
+      - pandas==1.4.4
+      - Pillow==9.2.0
+      - pyparsing==3.0.9
+      - python-dateutil==2.8.2
+      - pytz==2022.2.1
+      - six==1.16.0
+      - typing_extensions==4.3.0
+      - mpld3
+      - tqdm
+      - jupyter
+      - pyglet
+      - scikit-optimize
+      - gym-minigrid
+      - tensorboard==2.10.1
+      - intersect
+      - termcolor
+      - python-box
+      - omegaconf
+      - wandb
+      - pygame
+      - numba
+      - pyarrow
+      # pybullet сознательно не включён: не используется нигде в коде
+      # submodule (docs/acgym_audit.md, риск/находка по pybullet), и не
+      # собирается на Python 3.9/Windows без MSVC Build Tools (нет
+      # готового wheel). Если понадобится: pip install pybullet==<version>
+      # отдельно, после установки Build Tools.
