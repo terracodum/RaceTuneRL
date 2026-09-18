@@ -16,7 +16,7 @@
 Источник в репо: `third_party/assetto_corsa_gym/assetto_corsa_gym/AssettoCorsaPlugin/plugins/sensors_par`
 (`INSTALL.md:15-28`).
 
-1. Скопировать папку `sensors_par` целиком в:
+1. **Скопировать** (не переместить/вырезать!) папку `sensors_par` целиком в:
    ```
    X:\SteamLibrarySSD\steamapps\common\assettocorsa\apps\python\
    ```
@@ -24,6 +24,12 @@
    ```
    X:\SteamLibrarySSD\steamapps\common\assettocorsa\apps\python\sensors_par
    ```
+   Важно: если вырезать (Cut) вместо копировать — папка пропадёт из
+   `third_party/assetto_corsa_gym/assetto_corsa_gym/AssettoCorsaPlugin/plugins/sensors_par`,
+   а она там ТОЖЕ нужна (`ac_client.py:10` импортирует `car_control.Controls`
+   оттуда же, для локального управления через vJoy на стороне питон-клиента).
+   Если случайно вырезал — восстановить: `cd third_party\assetto_corsa_gym`
+   → `git checkout -- assetto_corsa_gym/AssettoCorsaPlugin/plugins/sensors_par`.
 
 ## 3. Конфиги vJoy/WASD и DLL
 
@@ -43,11 +49,27 @@
 
 ## 4. Custom Shaders Patch
 
-Нужен для сброса машины (`ac.ext_resetCar()`, вызывается плагином при reset)
-— `INSTALL.md:56-65`.
+Нужен не только для сброса машины (`ac.ext_resetCar()`) — плагин на
+**каждый кадр** дёргает `ac.ext_isAltPressed()`
+(`.../sensors_par/sensors_par.py:255`), это тоже CSP-расширение API.
+Без активного CSP это падает с `[PY ERROR] 'module' object has no
+attribute 'ext_isAltPressed'` на каждый кадр (видно в
+`Documents\Assetto Corsa\logs\log.txt`) — краш происходит ДО строки,
+которая шлёт телеметрию клиенту (`ego_server.tick()`,
+`sensors_par.py:280`), поэтому симптом такой: питон-клиент подключается
+(handshake проходит раньше), но дальше зависает намертво без единой
+ошибки на своей стороне — сброс/шаги никогда не завершаются.
 
 1. Поставить Content Manager: https://acstuff.ru/app/
-2. В Content Manager → Settings → Custom Shaders Patch → Install.
+2. В Content Manager → Settings → Custom Shaders Patch → Install (проверить
+   что статус "Active", не просто кнопка Install).
+3. **Игру запускать через Content Manager**, не напрямую через Steam/ярлык —
+   иначе патч может быть не подключён для сессии.
+4. На экране запуска (Content Manager → Hotlap/Race, вкладка выбора
+   трассы/машины) включить галочку **"Use extended physics"** — без неё
+   `ac.ext_*` функции недоступны даже при установленном и активном CSP.
+5. Если проблема осталась после этого — попробовать в Custom Shaders Patch
+   → "Reinstall current version" и полностью перезапустить AC.
 
 ## 5. Включить плагин в игре
 
@@ -64,16 +86,34 @@
 
 `INSTALL.md:76-79`.
 
-1. Options → Controls.
-2. Убедиться, что доступны и vJoy, и WASD.
-3. Выбрать vJoy как активный input-девайс.
+1. Options → Controls → **wheel/custom** (не xbox/gamepad, не keyboard).
+2. В списке **Configuration Presets** должен быть пресет `Vjoy` (мы
+   копировали `Vjoy.ini` в шаге 3) — выбрать его и нажать **apply preset**.
+   Если пресета нет в списке — проверить, что `Vjoy.ini` реально лежит в
+   `savedsetups` (шаг 3), и **полностью перезапустить AC** (список
+   пресетов сканируется при старте игры, не обновляется на лету).
+3. После применения пресета в Main Controls должно быть: Steering → Axis 1
+   (vJoy Device), Throttle → Axis 2, Brakes → Axis 3.
+4. vJoy — виртуальное устройство, руками (без запущенного питон-клиента)
+   его оси не подвигать, чтобы проверить биндинг — это нормально, не
+   баг настройки.
 
 ## 7. Видео/частота кадров
 
 `INSTALL.md:81-83`. Это жёсткое требование протокола — плагин ассертит
-`sampling_freq=50` при старте (`.../sensors_par/config.py:5,48-51`).
+`sampling_freq=50` при старте (`.../sensors_par/config.py:5,48-51`), и
+**шлёт телеметрию по счётчику кадров, а не по времени**
+(`ego_server.py:205`: раз в `sampling_freq // ego_sampling_freq` вызовов
+`acUpdate()`). Если реальный FPS выше 50 (например, без лимита — 180),
+телеметрия улетает клиенту значительно чаще расчётных 25 Гц, вся
+синхронизация по времени ломается: на практике это выглядит как
+аномальный разброс `dt` (вплоть до отрицательных значений) и заметные
+потери пакетов (десятки процентов от шагов) в логе питон-клиента.
 
 1. Options → Video → Display → Framerate Limit → **50 FPS**.
+2. **Обязательно проверить фактический FPS** после этого (по счётчику в
+   игре/CSP), не только что настройка стоит — лимит иногда не применяется
+   молча (наблюдалось: лимит стоял на 50, а реально было 180).
 
 ## 8. Режим сессии
 
@@ -111,6 +151,15 @@ RL-агентом вообще (см. `docs/acgym_audit.md`, п.4) — штат�
 Если по проекту решится делать ручную коробку — эти настройки (Automatic
 Gearbox/Clutch) и код придётся менять отдельно, это не входит в данную
 инструкцию (см. открытые вопросы в `docs/acgym_audit.md`).
+
+Если запускаешь сессию через **Content Manager** (см. шаг 4) — на экране
+Quick Drive/Hotlap отдельные тумблеры ассистов не всегда доступны, только
+именованные пресеты сложности в выпадающем списке (Gamer/Intermediate/Pro).
+**Gamer** обычно уже включает Automatic Gearbox/Clutch по умолчанию,
+**Pro** — нет (расчитан на полностью ручное управление). Если нужен точный
+контроль по таблице выше — этот список настроек доступен в самой игре
+(не в Content Manager) на экране подготовки к заезду (Challenge → Hotlap →
+блок Realism/Assists → вкладка Custom).
 
 ## Проверка, что плагин поднялся
 
