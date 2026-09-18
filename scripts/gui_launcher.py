@@ -73,7 +73,7 @@ PRESETS = {
     },
     "Диагностика vJoy (vjoy_diag.py)": {
         "cwd": REPO_ROOT,
-        "template": [P309_PYTHON, "scripts/vjoy_diag.py"],
+        "template": [P309_PYTHON, "scripts/diagnostics/vjoy_diag.py"],
         "fields": {},
     },
     "Своя команда": {
