@@ -18,6 +18,13 @@
 #     requirements.txt submodule он не запинен): актуальный tensorboard
 #     тянет protobuf>=6.31, несовместимый со сгенерированными .proto
 #     файлами wandb==0.12.16 ("Descriptors cannot be created directly").
+#   - matplotlib-inline закреплён на 0.1.6: jupyter тянет его последней
+#     версией (0.2.2), которая на import дёргает matplotlib.rcParams._get -
+#     приватный метод, которого нет в matplotlib==3.5.3 (падает
+#     "AttributeError: 'RcParams' object has no attribute '_get'" при любом
+#     %matplotlib inline / первом использовании pyplot в живом ядре
+#     Jupyter). Обнаружено при выполнении notebooks/magione_track_verification.ipynb,
+#     подробности - docs/reports/magione_track_files.md.
 #
 # Создание:  conda env create -f environment.yml
 # Обновление: conda env update -f environment.yml --prune
@@ -52,6 +59,7 @@ dependencies:
       - mpld3
       - tqdm
       - jupyter
+      - matplotlib-inline==0.1.6
       - pyglet
       - scikit-optimize
       - gym-minigrid
