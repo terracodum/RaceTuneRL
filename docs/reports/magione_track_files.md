@@ -1,5 +1,23 @@
 # Файлы трассы Magione для среды
 
+## Где что лежит
+
+Сгенерированные файлы и инструмент живут в основном репо, не в
+`third_party/assetto_corsa_gym`: `racetune/ac_configs/tracks/` (данные),
+`racetune/tools/generate_track_offline.py` (генератор). Сабмодуль —
+форк только ради кода апстрима (env/SAC), не хранилище наших
+артефактов — если туда что-то писать, оно физически лежит в чужом
+git-репозитории (`terracodum/assetto_corsa_gym`), а не у нас. Апстримные
+примеры трасс (`monza` и т.д., в `third_party/.../AssettoCorsaConfigs/tracks/`)
+не трогал — они часть форка, не наша работа.
+
+Из-за этого `AssettoCorsaEnv`-у при использовании Magione нужно явно
+передать `ac_configs_path=<repo_root>/racetune/ac_configs` (параметр уже
+есть в апстриме, `assettoCorsa.py:48-58`, ничего в форке менять не
+пришлось) — иначе он по умолчанию ищет конфиги в
+`third_party/assetto_corsa_gym/assetto_corsa_gym/AssettoCorsaConfigs`, а
+там Magione нет.
+
 ## Что сделано
 
 ### Разбор `generate_track.ipynb`
@@ -38,32 +56,33 @@
 реального прогона, а до этого момента нигде не используется для проверок.
 
 Поэтому вместо ноутбука с живым клиентом написан
-`AssettoCorsaConfigs/tracks/generate_track_offline.py` — порт-в-порт той
-же логики (`parse_fast_lane` = `structures.py:281-321`,
-`export_track_and_racing_line` = `ac_client.py:184-231`, grid = те же
-вызовы `AssettoCorsaEnv.track.Track`/`in_quadrilateral`, что и в
-notebook-ячейках 15-31), запущенный прямо на установленной трассе:
+`racetune/tools/generate_track_offline.py` — порт-в-порт той же логики
+(`parse_fast_lane` = `structures.py:281-321`, `export_track_and_racing_line`
+= `ac_client.py:184-231`, grid = те же вызовы
+`AssettoCorsaEnv.track.Track`/`in_quadrilateral`, что и в notebook-ячейках
+15-31 апстримного `generate_track.ipynb`, апстримный notebook при этом не
+трогал), запущенный прямо на установленной трассе:
 `X:\SteamLibrarySSD\steamapps\common\assettocorsa\content\tracks\magione`
 (путь — `docs/install_plugin.md:3`). Живая сессия AC для этого не
 понадобилась — только установленный контент.
 
 Сгенерировано (детали трассы 1754 точки, ~2.5 км):
-- `AssettoCorsaConfigs/tracks/magione.csv`
-- `AssettoCorsaConfigs/tracks/magione-racing_line.csv`
-- `AssettoCorsaConfigs/tracks/magione_0.1m.pkl` (occupancy grid, cell 0.1 м)
-- запись `magione:` в `AssettoCorsaConfigs/tracks/config.yaml`
+- `racetune/ac_configs/tracks/magione.csv`
+- `racetune/ac_configs/tracks/magione-racing_line.csv`
+- `racetune/ac_configs/tracks/magione_0.1m.pkl` (occupancy grid, cell 0.1 м, не в git — тот же `.gitignore`-паттерн, что и у `monza_0.1m.pkl` в форке)
+- `racetune/ac_configs/tracks/config.yaml` — запись `magione:`
   (`track_configuration` пуст — у Magione нет layout-подпапки, `ui_track.json`
-  подтверждает единственную конфигурацию)
+  подтверждает единственную конфигурацию). Файл только с нашими треками,
+  не копия полного апстримного `config.yaml`.
 - `TrackLength: 2455.121337890625` — **не** `ac.getTrackLength()`, а
   cumulative `dist` последней точки `fast_lane.ai`; заглушка, безопасная
   по причине выше. Официальная длина по `ui_track.json` — 2507 м
   (ожидаемое расхождение ~2%, разные методики замера).
-- `AssettoCorsa.track` в `config.yml` — добавлен `magione` в список-комментарий.
-- `generate_track.ipynb`, ячейка с ручным подбором `curvature_splines`:
-  добавлена ветка `elif track_file_name == "magione"` — на `error=1.0`
-  (default) кривизна на границах уже мала (индекс 0: -0.007, индекс -1:
-  0.01, относительно пика в поворотах 0.057), форсировать в 0 не
-  потребовалось.
+- Кривизна идеальной линии (`curvature_splines`, `error=1.0`) на границах
+  уже мала (индекс 0: -0.007, индекс -1: 0.01, относительно пика в
+  поворотах 0.057) — проверено вручную (см. ниже), форсировать в 0 не
+  потребовалось. В апстримный `generate_track.ipynb` это не заведено
+  (файл не трогаю), просто зафиксировано здесь как результат проверки.
 
 ### Система координат — найдена и подтверждена ловушка
 

@@ -7,8 +7,11 @@ setup on top of it. Built on a fork of
 
 **Status:** the AC↔plugin↔Python wiring is verified end-to-end (a pretrained
 checkpoint drives a real lap in AC). Target track (Magione) and car (Porsche
-911 RSR 2017) are not set up yet, and manual-gearbox control isn't
-implemented — see `docs/acgym_audit.md` for the full list of what's missing.
+911 RSR 2017) configs exist now (`racetune/ac_configs/`, see
+`docs/reports/magione_track_files.md` and `docs/reports/rsr_car_config.md`);
+manual-gearbox control is confirmed working live but not yet wired into a
+training run — see `docs/acgym_audit.md` for the full list of what's still
+missing.
 
 Windows only. `parcer/lap_recorder.py` reads Assetto Corsa's own Shared
 Memory via `mmap.mmap(-1, size, tagname=name, ...)`, which relies on Windows
@@ -19,7 +22,16 @@ named file mappings.
 ```
 environment.yml            # conda env "p309" for third_party/assetto_corsa_gym
 requirements.txt           # deps for this repo's own notebooks/ and parcer/
-third_party/assetto_corsa_gym/   # our fork, git submodule
+third_party/assetto_corsa_gym/   # the fork, git submodule - upstream's own code
+                            # only. Our track/car configs and other artifacts
+                            # live in racetune/, not here - see racetune/ below.
+
+racetune/
+  ac_configs/tracks/, cars/ # our own track/car configs for the env (matches
+                            # the fork's AssettoCorsaConfigs/{tracks,cars}
+                            # layout, passed in via ac_configs_path so the
+                            # fork itself stays untouched)
+  tools/                   # generators for the above (e.g. generate_track_offline.py)
 
 parcer/
   lap_recorder.py          # records a human lap from AC's Shared Memory to CSV
